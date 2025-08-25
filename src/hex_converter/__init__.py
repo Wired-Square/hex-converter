@@ -7,9 +7,14 @@ from .logic import (
     PRINTABLE_MIN,
     PRINTABLE_MAX,
     parse_hex_bytes,
-    bytes_to_ascii,
+    ascii_runs,
+    bytes_to_ascii_runs,
     int_range_for,
     parse_int_maybe,
+    group_bytes_to_ints,
+    group_bytes_into_hex,
+    group_bytes_into_hex_custom,
+    group_bytes_by_sizes,
 )
 
 __all__ = [
@@ -17,7 +22,12 @@ __all__ = [
     "PRINTABLE_MIN",
     "PRINTABLE_MAX",
     "parse_hex_bytes",
-    "bytes_to_ascii",
+    "ascii_runs",
+    "bytes_to_ascii_runs",
     "int_range_for",
     "parse_int_maybe",
+    "group_bytes_to_ints",
+    "group_bytes_into_hex",
+    "group_bytes_into_hex_custom",
+    "group_bytes_by_sizes",
 ]
