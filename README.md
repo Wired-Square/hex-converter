@@ -2,7 +2,9 @@
 
 A cross-platform **Hex ⇆ Integer/Text Converter** with a simple Tkinter GUI and testable core logic.
 
-![screenshot](docs/screenshot.png)
+![hex-view](assets/hex-view.png)
+![number-view](assets/number-view.png)
+![string-view](assets/string-view.png)
 
 ---
 

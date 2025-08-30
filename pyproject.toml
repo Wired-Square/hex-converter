@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hex-converter"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Hex bytes ⇆ integer/text converter GUI (Tkinter) with testable core logic"
 authors = [
-  { name = "Alex Ferrara (Wired Square Pty Ltd)", email = "alex@wiredsquare.com" }
+  { name = "Wired Square", email = "alex@wiredsquare.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.8"
@@ -28,7 +28,13 @@ classifiers = [
 Homepage = "https://wiredsquare.com/hex-converter"
 
 [project.scripts]
-hex-converter = "hex_converter.gui:main"
+hex-converter = "hex_converter.cli:main"
+
+[project.gui-scripts]
+"Hex Converter" = "hex_converter.gui:main"
 
 [tool.pytest.ini_options]
 addopts = "-q"
+
+[tool.setuptools.dynamic]
+version = { attr = "hex_converter.__about__.__version__" }
