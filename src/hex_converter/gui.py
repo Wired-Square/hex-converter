@@ -637,6 +637,8 @@ class ConverterApp:
     def _update_from_hex(self) -> None:
         try:
             data = parse_hex_bytes(self.hex_input_var.get())
+
+            # Empty input: clear everything
             if not data:
                 self.hex_group_btns.set_values([])
                 self.unsigned_btns.set_values([])
@@ -651,32 +653,98 @@ class ConverterApp:
                     self.hex_error_var.set("")
                 return
 
-            # Grouping
-            mode = self.hex_group_mode_var.get()
+            mode   = self.hex_group_mode_var.get()
+            endian = self.endian_var.get()
+
+            # -------- Build display-order chunks (endianness applied per group) --------
+            display_chunks: list[bytes] = []
+
             if mode == "custom":
                 sizes = parse_groups_pattern(self.hex_custom_groups_var.get())
-                hex_groups = group_bytes_into_hex_custom(data, sizes, self.endian_var.get())
+
+                if not sizes:
+                    # treat all bytes as one group
+                    chunk = data[::-1] if endian == "little" else data
+                    display_chunks = [chunk]
+                else:
+                    offset = 0
+                    for size in sizes:
+                        if offset >= len(data):
+                            break
+                        chunk = data[offset:offset + size]
+                        offset += size
+                        if endian == "little":
+                            chunk = chunk[::-1]
+                        display_chunks.append(chunk)
+
+                    if offset < len(data):
+                        chunk = data[offset:]
+                        if endian == "little":
+                            chunk = chunk[::-1]
+                        display_chunks.append(chunk)
             else:
-                g = int(mode)
-                hex_groups = group_bytes_into_hex(data, g, self.endian_var.get())
+                group_size = int(mode)
+                display_chunks = []
+                for offset in range(0, len(data), group_size):
+                    chunk = data[offset:offset + group_size]
+                    if endian == "little":
+                        chunk = chunk[::-1]
+                    display_chunks.append(chunk)
+
+            # Hex groups (from display-order chunks)
+            hex_groups = []
+            for chunk in display_chunks:
+                parts = []
+                for byte in chunk:
+                    parts.append(f"{byte:02X}")
+                hex_groups.append(" ".join(parts))
             self.hex_group_btns.set_values(hex_groups)
 
-            # Update chunk sizes for toggles
-            self._bit_display_chunk_sizes = [len(bytes.fromhex(g.replace(" ",""))) for g in hex_groups]
+            # Text groups (grouped the same way)
+            text_groups = []
+            for chunk in display_chunks:
+                # bytes_to_ascii_runs returns list[str]; join to a single segment per group
+                text_groups.append("".join(bytes_to_ascii_runs(chunk)))
+            self.text_btns.set_values(text_groups)
 
-            # Unsigned/Signed conversions
-            u_vals, s_vals = group_bytes_to_ints(data, endian=self.endian_var.get(), group_size=1)
-            self.unsigned_btns.set_values(u_vals)
-            self.signed_twos_btns.set_values(s_vals)
-            self.signed_ones_btns.set_values([bytes_to_ones_complement(data)])
-            self.signed_signmag_btns.set_values([bytes_to_sign_magnitude(data)])
+            # Keep toggle chunk sizes in sync with what's shown
+            sizes_out = []
+            for chunk in display_chunks:
+                sizes_out.append(len(chunk))
+            self._bit_display_chunk_sizes = sizes_out
 
-            # Binary and Bit toggles
-            self.bin_btns.set_values([f"{b:08b}" for b in data])
-            self.bit_toggles.set_bits(data)
+            # Flatten into a single display-order byte stream
+            display_bytes = b"".join(display_chunks)
 
-            # ASCII / Text
-            self.text_btns.set_values(bytes_to_ascii_runs(data))
+            # Numeric interpretations per group
+            unsigned_vals = []
+            for chunk in display_chunks:
+                unsigned_vals.append(int.from_bytes(chunk, byteorder="big", signed=False))
+
+            twos_vals = []
+            for chunk in display_chunks:
+                twos_vals.append(int.from_bytes(chunk, byteorder="big", signed=True))
+
+            ones_vals = []
+            for chunk in display_chunks:
+                ones_vals.append(bytes_to_ones_complement(chunk))
+
+            signmag_vals = []
+            for chunk in display_chunks:
+                signmag_vals.append(bytes_to_sign_magnitude(chunk))
+
+            self.unsigned_btns.set_values(unsigned_vals)
+            self.signed_twos_btns.set_values(twos_vals)
+            self.signed_ones_btns.set_values(ones_vals)
+            self.signed_signmag_btns.set_values(signmag_vals)
+
+            # Binary (display order) & bit toggles
+            bin_vals = []
+            for byte in display_bytes:
+                bin_vals.append(f"{byte:08b}")
+            self.bin_btns.set_values(bin_vals)
+
+            self.bit_toggles.set_bits(display_bytes)
 
             if hasattr(self, "hex_error_var"):
                 self.hex_error_var.set("")
